@@ -1,0 +1,66 @@
+services:
+  moodle:
+    image: ellakcy/moodle:mysql_maria_apache_405_php8.3
+    container_name: moodle
+    environment:
+      MOODLE_URL: 'https://moodle.v1-rotate.dev'
+      MOODLE_ADMIN: 'admin'
+      MOODLE_ADMIN_PASSWORD: 'Apostatically1-ventrodorsally9'
+      MOODLE_ADMIN_EMAIL: 'test@test.com'
+      MOODLE_DB_TYPE: mysql
+      MOODLE_DB_HOST: db
+      MOODLE_DB_USER: moodle
+      MOODLE_DB_PASSWORD: moodle
+      MOODLE_DB_NAME: moodle
+      MOODLE_REVERSE_LB: true
+      MOODLE_SSL: true
+    depends_on:
+      - db
+    volumes:
+      # - 'moodle_data:/var/moodledata'
+      - './moodle:/var/moodledata'
+    networks:
+      - internal
+
+  db:
+    image: mysql:8.0
+    container_name: db
+    environment:
+      - MYSQL_DATABASE=moodle
+      - MYSQL_USER=moodle
+      - MYSQL_PASSWORD=moodle
+      - MYSQL_ROOT_PASSWORD=toor
+    volumes:
+      # - db_data:/var/lib/mysql
+      - './mysql:/var/lib/mysql'
+    networks:
+      - internal
+
+  nginx:
+    image: nginx
+    container_name: nginx
+    volumes:
+      - ./nginx/test.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - moodle
+    labels:
+      - "traefik.enable=true"
+      - "traefik.port=80"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.moodle.rule=Host(`moodle.v1-rotate.dev`)"
+      - "traefik.http.routers.moodle.entrypoints=websecure"
+      - "traefik.http.routers.moodle.tls=true"
+      - "traefik.http.routers.moodle.tls.certResolver=cloudflare"
+    networks:
+      - internal
+      - traefik
+
+networks:
+  internal:
+  traefik:
+    external: true
+
+#volumes:
+  #moodle_data:
+  #db_data:
+
